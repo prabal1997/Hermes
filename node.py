@@ -13,6 +13,7 @@ class node:
     #CONSTRUCTOR
     def __init__(self, data=None, index=float('-inf')):
         self.__data, self.__index = data, index;
+        self._visited, self._parent, self._distance = False, None, float('inf');
         
     #GETTERS
     def data(self):

@@ -1,10 +1,9 @@
-    #test_2
-#test_1
-2.35 0 3 7 1.0 1 1
-1.24 2 7 3 1 1 1
-3.45 2 7 6 1 1 1
-1.98 3 3 2 1 1 2.56
-2.37 1 3 1 1 1 1
-9.54 3 5 2 1 1 1
-2.03 7 2 3 1 1 1
-5.01 6 5 7 1 1 1
+#This is a sample source-file used to initialize a graph using Hermes
+#The '#' symbol can be used to start a comment
+
+#'Data', 'Neighbours', 'Weights'
+2.35 1 2 1.0 9.0
+1.24 2 3 4 11.0 1.0 3.0
+3.45 3 2.0
+1.98 4 5.0
+2.37

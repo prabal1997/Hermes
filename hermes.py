@@ -1,5 +1,6 @@
 import numpy as npy
 from node import node
+import heapq
 
 class graph:
 
@@ -10,10 +11,10 @@ class graph:
         
         #loads data onto graph
         if (node_list):
-            init_nodes(node_list);
+            self.init_nodes(node_list);
 
     #BASIC GRAPH OPERATIONS
-            
+
     def init_nodes(self, node_list):
         #check if we received a file name
         adj_list, weight_list = [], [];
@@ -59,7 +60,7 @@ class graph:
             try:
                 self.__ref = npy.asarray([node(node_list[0][index], index) for index in range(len(node_list[0]))]);
                 adj_list = [npy.asarray( node_list[1][index]) for index in range(len(node_list[1]))];
-                weight_list = [npy.asarray(node_list[array][index]) for index in range(len(node_list[array]))];
+                weight_list = [npy.asarray(node_list[2][index]) for index in range(len(node_list[2]))];
                 
             except:
                 print("ERROR: could not process data, or the data had incorrect format");
@@ -80,6 +81,7 @@ class graph:
         if (isinstance(node_list, list) or isinstance(node_list, tuple)):
 
             try:
+                #check whether this function was called by the constructor
                 new_ref, adj_list, weight_list = [], [], [];
                 if (not formatted):
                     new_ref = npy.asarray([node(node_list[0][index], len(self.__ref)+index) for index in range(0, len(node_list[0]))]);
@@ -91,23 +93,25 @@ class graph:
                     new_ref, adj_list, weight_list = node_list[0], node_list[1], node_list[2];
     
                 new_matrix = npy.zeros((len(new_ref), len(new_ref)));
-                new_matrix[0:len(self.__matrix),0:len(self.__matrix)] = self.__matrix;
+                old_size = len(self.__matrix) if (self.__matrix is not None) else 0;
+                new_matrix[0:old_size,0:old_size] = self.__matrix;
 
                 #updating graph fields
                 self.__ref = new_ref;
                 self.__matrix = new_matrix;
                 self.__visited = npy.zeros(len(self.__ref), dtype="bool_");
                 
-                #handle the case where we are initializing the new graph
+                #check whether this function was called by the constructor
                 if (formatted):
                     for element, neighbours, weights in zip(self.__matrix, adj_list, weight_list):
-                        element[neighbours] = weights;
+                        if (len(neighbours)):
+                            element[neighbours] = weights*(weights > 0);
                     npy.fill_diagonal(self.__matrix, 0);
                 else:
                     #handle the case when we are simply adding new nodes
                     start_idx = len(self.__ref)-(len(adj_list));
                     for index in range(len(adj_list)):
-                        self.__matrix[start_idx+index][adj_list[index]] = weight_list[index]*(adj_list[index] != index);
+                        self.__matrix[start_idx+index][adj_list[index]] = weight_list[index]*(adj_list[index] != index)*(weight_list[index] > 0);
                     
             except:
                 print("ERROR: could not process data, or the data had incorrect format.");
@@ -117,7 +121,74 @@ class graph:
             return False;
             
         return True;
-      
+    
+    #this topologically sorts the graph and returns a list of nodes as an output
+    def sort_DAG(self):
+        print("sort_dag");
+    
+    #check if a path exists from 'node_1' to 'node_2'
+    def check_path(self, node_1, node_2):
+        print("DFS");
+    
+    #checks if the entire graph is connected (i.e. each node can be reached from a single node)
+    def check_connected(self):
+        print("check whether the graph is connected");
+    
+    #uses Kruskal's algorithm to build a MINIMUM SPANNING TREE
+    #NOTE: assumes un-directed graph, or returns a random, directed DAG 
+    def give_MST(self):
+        #special case
+        if (not self.__ref):
+            return graph();
+        
+        #prepare a list of nodes, a list of edges
+        node_list = self.__ref;
+        edge_list = [];
+        for index, element in enumerate(self.__matrix):
+            local_edges = [ (index, num, node) for num, node in enumerate(element) if node ];
+            edge_list.extend(local_edges);
+        
+        #sort edges by weight (in non-increasing order)
+        edge_list.sort(key = lambda element: -element[2]);
+        
+        #initializing sets (using hash-tables)
+        set_list = [{node: node_list[node]} for node in range(len(node_list))];
+        
+        #making the MST
+        tree_edges = {};
+        while(len(tree_edges) != len(node_list)-1):
+            #check if edge is part of the tree
+            edge = edge_list.pop();
+            if (set_list[edge[0]] != set_list[edge[1]]):
+                #merge the sets that contain the two nodes of the edge
+                new_set = (set_list[edge[0]] if ( len(set_list[edge[1]]) > len(set_list[edge[0]]) ) else set_list[edge[1]]);
+                for node_num in edge[:-1]:
+                    new_set[node_num] = node_list[node_num];
+                    set_list[node_num] = new_set;
+                
+                #incrementing counter, extending tree                
+                tree_edges[edge[0]] = [ node_list[edge[0]].data(), [edge[1]], [edge[2]] ];
+        
+        #convert the edge list to a node list & adjacency list
+        element_list = [];
+        for element in range(len(node_list)):
+            if (element not in tree_edges):
+                tree_edges[element] = [node_list[element].data(), [], []];
+            element_list.append(tree_edges[element]);
+        
+        final_list = [[], [], []];
+        for element in element_list:
+            final_list[0].append(element[0]);
+            final_list[1].append(element[1]);
+            final_list[2].append(element[2]);
+    
+        return graph(final_list);
+         
+    #calculates shortest path from a node to some other node
+    def shortest_paths(self, node_1, node_2):
+        print("ERROR: use A*");
+    
+    
     def add_edges(self, node_num, edge_list, edge_weight):
         #check if we are receiving a list of requests
         if (not isinstance(node_num, list)):
@@ -128,7 +199,7 @@ class graph:
                 node_idx, new_edges, new_weights = triplet;
                 new_edges, new_weights = npy.asarray(new_edges), npy.asarray(new_weights);
                 
-                self.__matrix[node_idx][new_edges] = new_weights*(node_idx != new_edges); 
+                self.__matrix[node_idx][new_edges] = new_weights*(node_idx != new_edges)*(new_weights > 0); 
                 
         except:
             print("ERROR: erroneous input provided");
@@ -208,9 +279,11 @@ class graph:
             
 x = graph();
 x.init_nodes("source");
-x.extend_graph([[3, 2, 5], [2, 3, 1], [55, 99, 5]]);
+#x.extend_graph([[3, 2, 5], [2, 3, 1], [55, 99, 5]]);
+#x.print_graph();
+#x.add_edges([0, 10], [9, 9], [15, 32.234]);
+#x.print_graph();
+#x.delete_node([10]);
 x.print_graph();
-x.add_edges([0, 10], [9, 9], [15, 32.234]);
-x.print_graph();
-x.delete_node([10]);
-x.print_graph();
+y = x.give_MST();
+y.print_graph();
